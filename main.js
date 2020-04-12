@@ -6,11 +6,41 @@ const prompt = require('prompt');
 
 
 
-const arrTemp = []
 
+const option = {
+	title: "The world of otome game is tough for mobs",
+	author: "",
+	content: []
+};
+
+
+var ranobeSchema = {
+	properties: {
+		first: {
+			description: 'The initial chapter (example: 60)',
+			message: 'Required parameter',
+			required: true
+		},
+		last: {
+			description: 'The last chapter (example: 120)',
+			message: 'Required parameter',
+			required: true
+		},
+		vol: {
+			description: 'Ranobe volume (example: 5)',
+			message: 'Required parameter',
+			required: true
+		},
+		href: {
+			description: 'Link to a ranobe.\n URL example: https://ranobelib.me/otome-ga-world-is-a-tough-world-for-mob-novel',
+			message: 'Required parameter',
+			required: true
+		}
+	}
+};
 
 prompt.start();
-prompt.get(['first', 'last', 'vol', 'href'], function (err, result) {
+prompt.get(ranobeSchema, function (err, result) {
 	const firstChapter = result.first
 	const lastChapter = result.last
 	const ver = result.vol
@@ -22,7 +52,6 @@ prompt.get(['first', 'last', 'vol', 'href'], function (err, result) {
 
 
 promiseLoop = async (url, firstChapter, lastChapter, ver) => {
-	/* url example https://ranobelib.me/otome-ga-world-is-a-tough-world-for-mob-novel */
 	let temp = firstChapter
 	
 	while (temp <= lastChapter) {
@@ -35,14 +64,20 @@ promiseLoop = async (url, firstChapter, lastChapter, ver) => {
 					}
 
 					let $ = cheerio.load(body);
+					let arrTemp = []
 
 					let domEl = $('.reader-container.container.container_center > p')
+					let domTitle = $('span.text-truncate').text()
+
 
 					if (domEl.length > 0) {
 						domEl.each(function (index, el) {
 							arrTemp.push(`<p>${$(el).text()}</p>`)
 						});
 					}
+
+					option.content.push({title: domTitle, data: arrTemp.join(' ')})
+					
 					resolve()
 				}
 			)
@@ -50,15 +85,6 @@ promiseLoop = async (url, firstChapter, lastChapter, ver) => {
 		temp++
 	}
 
-	const option = {
-		title: "World of otome game is tough for mobs",
-		author: "",
-		content: [
-			{
-				data: `${arrTemp.join(' ')}`
-			}
-		]
-	};
 
 	new Epub(option, `./World of otome game is tough for mobs(vol.${ver}, chap.${firstChapter}-${lastChapter}).epub`);
 }
