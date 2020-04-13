@@ -20,6 +20,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 yarn.lock
+*.epub
+*.fb2
+ranobe
 
 # Special
 Thumbs.db
