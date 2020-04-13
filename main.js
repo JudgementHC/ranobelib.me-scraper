@@ -1,16 +1,14 @@
-const request = require('request');
-const cheerio = require('cheerio');
-const fs = require('fs');
+/* DEPENDENCIES */
 const Epub = require("epub-gen");
 const prompt = require('prompt');
 
+/* LOCAL FILE IMPORT */
+const { convertFb2 } = require('./executableJS/convertFb2')
+const { scrapRanobeText } = require("./executableJS/scrapRanobeText");
 
-/* global variable */
-const optionTemp = []
-let titleName = ''
 
 
-var ranobeSchema = {
+const ranobeSchema = {
 	properties: {
 		first: {
 			description: 'The initial chapter (example: 60)',
@@ -39,57 +37,18 @@ var ranobeSchema = {
 		}
 	}
 };
-
 prompt.start();
-prompt.get(ranobeSchema, function (err, result) {
+prompt.get(ranobeSchema, async function (err, result) {
 	let [firstChapter, lastChapter, ver, url, titleName] = 
 	[result.first, result.last, result.vol, result.href, result.name].map(el => el.trim())
 
-	promiseLoop(url, firstChapter, lastChapter, ver, titleName)
-})
-
-
-
-promiseLoop = async (url, firstChapter, lastChapter, ver, titleName) => {
-	let temp = firstChapter
-	
-	while (temp <= lastChapter) {
-		await new Promise(resolve => {
-			request(
-				`${url}/v${ver}/c${temp}`,
-				function (error, response, body) {
-					if (error) {
-						throw error
-					}
-
-					let $ = cheerio.load(body);
-					let arrTemp = []
-
-					let domEl = $('.reader-container.container.container_center > p')
-					let domTitle = $('span.text-truncate').text()
-
-
-					if (domEl.length > 0) {
-						domEl.each(function (index, el) {
-							arrTemp.push(`<p>${$(el).text()}</p>`)
-						});
-					}
-
-					optionTemp.push({title: domTitle, data: arrTemp.join(' ')})
-					
-					resolve()
-				}
-			)
-		})
-		temp++
-	}
-
+	let options = await scrapRanobeText(url, firstChapter, lastChapter, ver)
 
 	const option = {
 		title: titleName,
 		author: "",
-		content: optionTemp
+		content: options
 	};
-	
+
 	new Epub(option, `./ranobe/${titleName}(vol.${ver}, chap.${firstChapter}-${lastChapter}).epub`);
-}
+});
