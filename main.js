@@ -1,3 +1,5 @@
+/* 89 - 122 */
+
 /* DEPENDENCIES */
 const Epub = require("epub-gen");
 const prompt = require('prompt');
@@ -50,7 +52,9 @@ const ranobeSchema = {
 		}
 	}
 };
+
 prompt.start();
+
 prompt.get(ranobeSchema, async function (err, result) {
 	let [firstChapter, lastChapter, ver, url, titleName] = 
 	[result.first, result.last, result.vol, result.href, result.name].map(el => el.trim())
@@ -63,14 +67,53 @@ prompt.get(ranobeSchema, async function (err, result) {
 		content: options
 	};
 
-	await new Epub(option, `./ranobe/${titleName}(vol.${ver}, chap.${firstChapter}-${lastChapter}).epub`);
+	checkFolder('./ranobe', async () => {
+		const titleDir = `./ranobe/${titleName}(vol.${ver}, chap.${firstChapter}-${lastChapter})`
+	
+		new Epub(option, `${titleDir}.epub`);
+	
+		if (result.convertApiKey.length > 0) {
+			// const apiKey = 'f836cd51aacaa3ddc97156339f8381e6cca888be'
+			const formData = {
+				target_format: 'fb2',
+				source_file: fs.createReadStream(`${titleDir}.epub`)
+			};
 
-	/* const apiKey = 'f836cd51aacaa3ddc97156339f8381e6cca888be'
-	const formData = {
-		target_format: 'fb2',
-		source_file: fs.createReadStream('./ranobe/World of otome game is tough for mobs(vol.4, chap.123-165).epub')
-	}; */
+			const API = result.convertApiKey
+			const jobID = await convertFb2.sendRanobe(formData, API);
+
+			waitServerResponse(
+					convertFb2.checkRequest(jobID, API)
+				)
+				.then(result => {
+					convertFb2.getRanobe(jobID, `${titleDir}.fb2`, API)
+					console.log(result)
+				})
+		}
 	
-	await convertFb2.sendRanobe();
-	
+	})
 });
+
+
+
+async function waitServerResponse(condition) {
+	return await new Promise(resolve => {
+		const interval = setInterval(() => {
+			if (condition === 'successful') {
+				resolve('successful');
+				clearInterval(interval);
+			} else {
+				console.log(condition);
+			}
+		}, 10000);
+	});
+}
+
+
+function checkFolder(folderName, callback) {
+	if (!fs.existsSync(folderName)) {
+		fs.mkdirSync(folderName);
+	}
+
+	callback()
+}

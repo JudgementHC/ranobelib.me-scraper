@@ -8,6 +8,8 @@ const formData = {
 	source_file: fs.createReadStream('./ranobe/World of otome game is tough for mobs(vol.4, chap.123-165).epub')
 }; */
 const sendRanobe = async (formData, apiKey) => {
+	let dataID = ''
+	
 	await new Promise(resolve => {
 		request.post({
 				url: 'https://sandbox.zamzar.com/v1/jobs/',
@@ -17,13 +19,16 @@ const sendRanobe = async (formData, apiKey) => {
 				if (err) {
 					console.error('Unable to start conversion job', err);
 				} else {
-					console.log('SUCCESS! Conversion job started:', JSON.parse(body));
+					dataID = JSON.parse(body).id
+					console.log('SUCCESS! Conversion job started:', dataID);
 				}
 			}
 		).auth(apiKey, '', true);
 
 		resolve();
 	})
+
+	return dataID;
 }
 
 
@@ -32,6 +37,8 @@ const sendRanobe = async (formData, apiKey) => {
 	jobID = 15; */
 
 const checkRequest = async (jobID, apiKey) => {
+	let serverAnswer = ''
+	
 	await new Promise(resolve => {
 		request.get(
 			`https://sandbox.zamzar.com/v1/jobs/${jobID}`,
@@ -39,13 +46,16 @@ const checkRequest = async (jobID, apiKey) => {
 				if (err) {
 					console.error('Unable to get job', err);
 				} else {
-					return JSON.parse(body)
+					serverAnswer = JSON.parse(body).status
+					console.log('SUCCESS! Got job:', serverAnswer);
 				}
 			}
 		).auth(apiKey, '', true);
 
 		resolve();
 	})
+
+	return serverAnswer;
 }
 
 
@@ -64,7 +74,7 @@ const getRanobe = async (fileID, fileName, apiKey) => {
 						// Issue a second request to download the file
 						var fileRequest = request(response.headers.location);
 						fileRequest.on('response', function (res) {
-							res.pipe(fs.createWriteStream(`./ranobe/${fileName}.fb2`));
+							res.pipe(fs.createWriteStream(fileName));
 						});
 						fileRequest.on('end', function () {
 							console.log('File download complete');
@@ -72,7 +82,7 @@ const getRanobe = async (fileID, fileName, apiKey) => {
 					}
 				}
 			}
-		).auth(apiKey, '', true).pipe(fs.createWriteStream(`./ranobe/${fileName}.fb2`));
+		).auth(apiKey, '', true).pipe(fs.createWriteStream(fileName));
 
 		resolve();
 	})
