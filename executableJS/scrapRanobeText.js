@@ -26,4 +26,4 @@ async function scrapRanobeText(url, firstChapter, lastChapter, ver) {
 	}
 	return optionTemp;
 }
-exports.scrapRanobeText = scrapRanobeText;
+module.exports = scrapRanobeText;

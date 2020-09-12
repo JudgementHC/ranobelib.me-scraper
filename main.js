@@ -1,13 +1,13 @@
 /* 89 - 122 */
 
 /* DEPENDENCIES */
-const Epub = require("epub-gen");
-const prompt = require('prompt');
-const fs = require('fs');
+const Epub = require("epub-gen")
+const prompt = require('prompt')
+const fs = require('fs')
 
 /* LOCAL FILE IMPORT */
-const { convertFb2 } = require('./executableJS/convertFb2')
-const { scrapRanobeText } = require("./executableJS/scrapRanobeText");
+const { sendRanobe, getRanobe, checkRequest } = require('./executableJS/convertFb2')
+const scrapRanobeText = require("./executableJS/scrapRanobeText")
 
 
 
@@ -51,9 +51,9 @@ const ranobeSchema = {
 			message: 'Required parameter'
 		}
 	}
-};
+}
 
-prompt.start();
+prompt.start()
 
 prompt.get(ranobeSchema, async function (err, result) {
 	let [firstChapter, lastChapter, ver, url, titleName] = 
@@ -65,54 +65,39 @@ prompt.get(ranobeSchema, async function (err, result) {
 		title: titleName,
 		author: "",
 		content: options
-	};
+	}
 
 	checkFolder('./ranobe', async () => {
 		const titleDir = `./ranobe/${titleName}(vol.${ver}, chap.${firstChapter}-${lastChapter})`
 	
-		new Epub(option, `${titleDir}.epub`);
-	
+		const epub = await new Epub(option, `${titleDir}.epub`).promise
+
 		if (result.convertApiKey.length > 0) {
 			// const apiKey = 'f836cd51aacaa3ddc97156339f8381e6cca888be'
 			const formData = {
 				target_format: 'fb2',
 				source_file: fs.createReadStream(`${titleDir}.epub`)
-			};
+			}
 
 			const API = result.convertApiKey
-			const jobID = await convertFb2.sendRanobe(formData, API);
+			const jobID = await sendRanobe(formData, API)
 
-			waitServerResponse(
-					convertFb2.checkRequest(jobID, API)
-				)
-				.then(result => {
-					convertFb2.getRanobe(jobID, `${titleDir}.fb2`, API)
-					console.log(result)
-				})
-		}
-	
-	})
-});
+			const serverResponse = await checkRequest(jobID, API)
 
-
-
-async function waitServerResponse(condition) {
-	return await new Promise(resolve => {
-		const interval = setInterval(() => {
-			if (condition === 'successful') {
-				resolve('successful');
-				clearInterval(interval);
-			} else {
-				console.log(condition);
+			if (serverResponse) {
+				getRanobe(serverResponse, `${titleDir}.fb2`, API)
 			}
-		}, 10000);
-	});
-}
+		}
+		else {
+			console.error(epub)
+		}
+	})
+})
 
 
 function checkFolder(folderName, callback) {
 	if (!fs.existsSync(folderName)) {
-		fs.mkdirSync(folderName);
+		fs.mkdirSync(folderName)
 	}
 
 	callback()
